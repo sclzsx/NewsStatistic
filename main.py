@@ -1,39 +1,97 @@
 # 以一个社区为单位，关键词出现的新闻篇数占该社区总新闻篇数的比例
+
 import numpy as np
 import pandas as pd
-
-# df1 = np.array(pd.read_excel('community_news.xlsx', sheet_name='社区新闻原始数据'))
-# df2 = np.array(pd.read_excel('community_news.xlsx', sheet_name='结果'))
-#
-# names2 = df2[:,1]
-# total_nums2 = df2[:,2]
-#
-# names1 = df1[:,2]
-# contents1 = df1[:,5]
-# print(contents1)
-
 import docx
-
-# 获取文档对象
-file = docx.Document("keywords.docx")
-# print("段落数:" + str(len(file.paragraphs)))  # 段落数为13，每个回车隔离一段
+import sys
 
 
-# key_country, key_company, key_public, key_others = [], [], [], []
-# keywords = [key_country, key_company, key_public, key_others]
-keywords = []
-k = 0
-tmp = []
-for i in range(len(file.paragraphs)):
-    text = file.paragraphs[i].text
-    tmp.append(text)
+def extract_keywords_from_docx():
+    file = docx.Document("keywords.docx")
 
-    if len(text) == 0:
-        k = k + 1
-        keywords.append(tmp)
-        tmp = []
+    keywords = []  # 国家，公司，党，其他
+    k = 0
+    tmp = []
+    pass_words = ['关键词', '国家级', '省级', '市级', '区级']
+    for i in range(len(file.paragraphs)):
+        text = file.paragraphs[i].text
+        if len(text) > 0:
+            pass_flag = 0
+            for pass_word in pass_words:
+                if pass_word in text:
+                    pass_flag = 1
+                    break
+            if not pass_flag:
+                tmp.append(text)
 
-keywords[0] = keywords[0]
+        if len(text) == 0:
+            k = k + 1
+            keywords.append(tmp)
+            tmp = []
+
+    return keywords
+
+
+keywords = extract_keywords_from_docx()
+print('完成docx读取')
 print(keywords[0])
-if __name__ == '__main__':
-    pass
+print(keywords[1])
+print(keywords[2])
+print(keywords[3])
+print()
+
+data = np.array(pd.read_excel('community_news.xlsx', sheet_name='社区新闻原始数据'))
+results = np.array(pd.read_excel('community_news.xlsx', sheet_name='结果'))
+
+d_communitiy_names = data[:, 2]
+d_communitiy_news = data[:, 5]
+r_communitiy_names = results[:, 1]
+r_communitiy_newsnums = results[:, 2]
+
+print('完成excel读取')
+print(r_communitiy_names)
+print(results.shape, data.shape)
+print()
+
+
+def check_keywords_in_news(keywords, news):
+    for keyword in keywords:
+        if keyword in news:
+            return 1
+    return 0
+
+
+count = np.zeros((r_communitiy_names.shape[0], 9))
+for i, r_communitiy_name in enumerate(r_communitiy_names):
+    total_num = r_communitiy_newsnums[i]
+    country_num, company_num, party_num, others_num = 0, 0, 0, 0
+    for j, name in enumerate(d_communitiy_names):
+        if name == r_communitiy_name:
+            news = d_communitiy_news[j]
+            if not isinstance(news, str):
+                continue
+            country_num = country_num + check_keywords_in_news(keywords[0], news)
+            company_num = company_num + check_keywords_in_news(keywords[1], news)
+            party_num = party_num + check_keywords_in_news(keywords[2], news)
+            others_num = others_num + check_keywords_in_news(keywords[3], news)
+    print('name:{}, total_num:{}, country_num:{}, company_num:{}, party_num:{}, others_num:{}'.format(r_communitiy_name,
+                                                                                                      total_num,
+                                                                                                      country_num,
+                                                                                                      company_num,
+                                                                                                      party_num,
+                                                                                                      others_num))
+    count[i, 0] = total_num
+    count[i, 1] = country_num
+    count[i, 2] = country_num / total_num
+    count[i, 3] = company_num
+    count[i, 4] = company_num / total_num
+    count[i, 5] = party_num
+    count[i, 6] = party_num / total_num
+    count[i, 7] = others_num
+    count[i, 8] = others_num / total_num
+print('完成统计')
+print()
+
+pd.DataFrame(count).to_csv('count.csv', index=False, header=False)
+count_read = np.array(pd.read_csv('count.csv', header=None))
+print('完成结果保存')
