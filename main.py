@@ -18,18 +18,22 @@ import docx
 file = docx.Document("keywords.docx")
 # print("段落数:" + str(len(file.paragraphs)))  # 段落数为13，每个回车隔离一段
 
-# # 输出每一段的内容
-# for para in file.paragraphs:
-#     print(para.text)
 
-# 输出段落编号及段落内容
-key_country = []
+# key_country, key_company, key_public, key_others = [], [], [], []
+# keywords = [key_country, key_company, key_public, key_others]
+keywords = []
+k = 0
+tmp = []
 for i in range(len(file.paragraphs)):
     text = file.paragraphs[i].text
-    keywords = []
-    keywords.append(text)
-    if len()
-    # print("第" + str(i) + "段的内容是：" + file.paragraphs[i].text)
+    tmp.append(text)
 
+    if len(text) == 0:
+        k = k + 1
+        keywords.append(tmp)
+        tmp = []
+
+keywords[0] = keywords[0]
+print(keywords[0])
 if __name__ == '__main__':
     pass
